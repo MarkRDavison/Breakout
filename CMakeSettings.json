@@ -1,0 +1,16 @@
+﻿{
+  "configurations": [
+    {
+      "name": "x86-DebugMsvc",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": " -DGLEW_STATIC=ON -DGLEW_ROOT=\"C:/Workspace/Libraries/glew-2.1.0\" -DGLFW_ROOT=\"C:/Workspace/Libraries/glfw-3.3.2.bin.WIN32\" -DFREETYPE_ROOT=\"C:/Workspace/Libraries/freetype-2.8.1\" -DOPENALSOFT_ROOT=\"C:/Workspace/Libraries/openal-soft-1.20.1-bin\" -DZENO_ROOT=\"C:/Workspace/Libraries/Zeno\"",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x86" ],
+      "variables": []
+    }
+  ]
+}
