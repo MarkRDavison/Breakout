@@ -59,6 +59,13 @@ namespace brk {
 			ball.setTranslation(b->position);
 			ball.render(_target, info);
 		}
+
+		for (const auto& p : game->powerups) {
+			ze::CircleShape powerup(0.5f);
+			powerup.setInternalColour(p->colour);
+			powerup.setTranslation(p->position);
+			powerup.render(_target, info);
+		}
 	}
 
 }

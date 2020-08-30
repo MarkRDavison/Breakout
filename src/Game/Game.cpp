@@ -48,12 +48,24 @@ namespace brk {
 				ballsOutOfBounds = true;
 			}
 
-			if (ballsOutOfBounds) {
-				balls.erase(std::remove_if(balls.begin(), balls.end(), [](const std::shared_ptr<Ball>& _ball) -> bool { return _ball->outOfBounds; }), balls.end());
-				if (balls.empty()) {
-					std::cout << "Balls all gone." << std::endl;
-				}
+		}
+		if (ballsOutOfBounds) {
+			balls.erase(std::remove_if(balls.begin(), balls.end(), [](const std::shared_ptr<Ball>& _ball) -> bool { return _ball->outOfBounds; }), balls.end());
+			if (balls.empty()) {
+				std::cout << "Balls all gone." << std::endl;
 			}
+		}
+
+		bool powerupsNeedRemoving = false;
+		for (auto& p : powerups) {
+			p->previousPosition = p->position;
+			updatePowerup(p, _delta);
+			if (p->requiresRemoval) {
+				powerupsNeedRemoving = true;
+			}
+		}
+		if (powerupsNeedRemoving) {
+			powerups.erase(std::remove_if(powerups.begin(), powerups.end(), [](const std::shared_ptr<Powerup>& _powerup) -> bool { return _powerup->requiresRemoval; }), powerups.end());
 		}
 
 		bricks.erase(std::remove_if(bricks.begin(), bricks.end(), [](const std::shared_ptr<Brick>& _brick) -> bool { return _brick->hp <= 0; }), bricks.end());
@@ -136,6 +148,18 @@ namespace brk {
 				if (b->hp == 3) {
 					b->colour = ze::Colour::Red;
 				}
+				if (b->hp <= 0) {
+					auto powerup = std::make_shared<Powerup>();
+					powerup->position = ze::Vector2f(brickBounds.left + brickBounds.width / 2.0f, brickBounds.bot);
+					powerup->previousPosition = powerup->position;
+					powerup->type = (rand() % 2 == 0)
+						? Powerup::Type::BigPaddle
+						: Powerup::Type::SmallPaddle;
+					powerup->colour = (powerup->type == Powerup::Type::BigPaddle)
+						? ze::Colour::Yellow
+						: ze::Colour::Magenta;
+					powerups.push_back(powerup);
+				}
 
 				const auto offset = (nextPos - _ball->direction * penDepth) - _ball->position;
 
@@ -216,6 +240,57 @@ namespace brk {
 
 		if (start_delta != _delta) {
 			updateBall(_ball, start_delta - _delta);
+		}
+	}
+
+	void Game::updatePowerup(std::shared_ptr<Powerup>& _powerup, float _delta) {
+		_powerup->position.y -= _powerup->speed * _delta; 
+		if (_powerup->position.y < -gameBounds.y) {
+			_powerup->requiresRemoval = true;
+			return;
+		}
+
+		const ze::Vector2f size(1.0f, 1.0f);
+		ze::FloatRect powerupBounds(_powerup->position - size / 2.0f, size);
+
+		for (auto& paddle : paddles) {
+			ze::FloatRect paddleBounds(paddle->position - paddle->size / 2.0f, paddle->size);
+			if (paddleBounds.intersects(powerupBounds)) {
+				applyPowerup(_powerup, paddle);
+				_powerup->requiresRemoval = true;
+				break;
+			}
+		}
+	}
+
+	void Game::applyPowerup(std::shared_ptr<Powerup>& _powerup, std::shared_ptr<Paddle>& _paddle) {
+
+		const auto bigPaddleFxn = [](std::shared_ptr<Paddle>& _paddle) -> void {
+			if (_paddle->sizeState == Paddle::SizeState::Little) {
+				_paddle->sizeState = Paddle::SizeState::Normal;
+				_paddle->size = { Definitions::CellSize * 3,Definitions::CellSize };
+			} else if (_paddle->sizeState == Paddle::SizeState::Normal) {
+				_paddle->sizeState = Paddle::SizeState::Big;
+				_paddle->size = { Definitions::CellSize * 4,Definitions::CellSize };
+			}
+		};
+		const auto smallPaddleFxn = [](std::shared_ptr<Paddle>& _paddle) -> void {
+			if (_paddle->sizeState == Paddle::SizeState::Big) {
+				_paddle->sizeState = Paddle::SizeState::Normal;
+				_paddle->size = { Definitions::CellSize * 3,Definitions::CellSize };
+			} else if (_paddle->sizeState == Paddle::SizeState::Normal) {
+				_paddle->sizeState = Paddle::SizeState::Little;
+				_paddle->size = { Definitions::CellSize * 2,Definitions::CellSize };
+			}
+		};
+
+		switch (_powerup->type) {
+		case Powerup::Type::BigPaddle:
+			bigPaddleFxn(_paddle);
+			break;
+		case Powerup::Type::SmallPaddle:
+			smallPaddleFxn(_paddle);
+			break;
 		}
 	}
 
